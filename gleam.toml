@@ -1,7 +1,7 @@
 name = "catastrophic"
 version = "1.0.0"
 description = "SANS-IO Anthropic API client for Gleam"
-licences = ["Apache-2.0"]
+licences = ["MIT"]
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"

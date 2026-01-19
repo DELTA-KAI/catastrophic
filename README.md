@@ -255,4 +255,4 @@ gleam build # Build the project
 
 ## License
 
-Apache-2.0
+MIT
