@@ -32,6 +32,20 @@ pub type Config {
 }
 
 /// Create a new configuration with default values.
+///
+/// Creates a configuration object for the Anthropic API with standard defaults:
+/// - API version: "2023-06-01"
+/// - Base URL: "https://api.anthropic.com"
+///
+/// ## Parameters
+///
+/// - `api_key`: Your Anthropic API key. Get one from https://console.anthropic.com/
+///
+/// ## Example
+///
+/// ```gleam
+/// let config = catastrophic.default_config("sk-ant-api03-...")
+/// ```
 pub fn default_config(api_key: String) -> Config {
   Config(
     api_key: api_key,
@@ -41,11 +55,40 @@ pub fn default_config(api_key: String) -> Config {
 }
 
 /// Set a custom API version on the configuration.
+///
+/// Override the default API version if you need to use a specific version
+/// of the Anthropic API.
+///
+/// ## Parameters
+///
+/// - `config`: The configuration to modify
+/// - `version`: The API version string (e.g., "2023-06-01")
+///
+/// ## Example
+///
+/// ```gleam
+/// let config = catastrophic.default_config("sk-ant-api03-...")
+///   |> catastrophic.api_version("2024-01-01")
+/// ```
 pub fn api_version(config: Config, version: String) -> Config {
   Config(..config, api_version: version)
 }
 
 /// Set a custom base URL on the configuration.
+///
+/// Override the default base URL if you're using a proxy or custom endpoint.
+///
+/// ## Parameters
+///
+/// - `config`: The configuration to modify
+/// - `url`: The base URL (e.g., "https://api.anthropic.com")
+///
+/// ## Example
+///
+/// ```gleam
+/// let config = catastrophic.default_config("sk-ant-api03-...")
+///   |> catastrophic.url("https://my-proxy.com")
+/// ```
 pub fn url(config: Config, url: String) -> Config {
   Config(..config, base_url: url)
 }
@@ -119,47 +162,115 @@ fn decode_api_error(
 // ---- Message Types ----
 
 /// A role in a conversation.
+///
+/// Represents who sent a message in the conversation history.
 pub type Role {
+  /// Messages sent by the user/human
   User
+  /// Messages sent by Claude/assistant
   Assistant
 }
 
 /// Content block in a message.
+///
+/// Messages can contain different types of content including text, images,
+/// tool use requests, and tool results.
 pub type ContentBlock {
   /// Text content
+  ///
+  /// ## Fields
+  /// - `text`: The text content of the message
   TextBlock(text: String)
+
   /// Image content (base64 encoded)
+  ///
+  /// ## Fields
+  /// - `source`: Image data and metadata
   ImageBlock(source: ImageSource)
+
   /// Tool use request from the assistant
+  ///
+  /// When Claude wants to use a tool, it returns this block with the tool name
+  /// and input parameters.
+  ///
+  /// ## Fields
+  /// - `id`: Unique identifier for this tool use (e.g., "toolu_123")
+  /// - `name`: Name of the tool to use
+  /// - `input`: Tool input parameters as JSON
   ToolUseBlock(id: String, name: String, input: Json)
+
   /// Tool result from the user
+  ///
+  /// Send this block to provide the results of executing a tool back to Claude.
+  ///
+  /// ## Fields
+  /// - `tool_use_id`: ID of the tool use this is responding to
+  /// - `content`: Result content (typically JSON string)
+  /// - `is_error`: Whether this result represents an error
   ToolResultBlock(tool_use_id: String, content: String, is_error: Bool)
 }
 
 /// Image source configuration.
+///
+/// Defines how image data is provided to Claude.
 pub type ImageSource {
+  /// Base64 encoded image data
+  ///
+  /// ## Fields
+  /// - `media_type`: MIME type (e.g., "image/png", "image/jpeg")
+  /// - `data`: Base64 encoded image data
   Base64Image(media_type: String, data: String)
 }
 
 /// A message in the conversation.
+///
+/// Represents a single turn in the conversation, containing the role
+/// and a list of content blocks.
+///
+/// ## Fields
+/// - `role`: Who sent this message (User or Assistant)
+/// - `content`: List of content blocks in the message
 pub type Message {
   Message(role: Role, content: List(ContentBlock))
 }
 
 /// Stop reason for message completion.
+///
+/// Indicates why Claude stopped generating.
 pub type StopReason {
+  /// Claude decided the conversation turn is complete
   EndTurn
+  /// Hit the maximum token limit
   MaxTokens
+  /// Encountered a stop sequence
   StopSequence
+  /// Claude wants to use a tool
   ToolUse
 }
 
 /// Usage information for the API request.
+///
+/// Token counts for billing and rate limiting purposes.
+///
+/// ## Fields
+/// - `input_tokens`: Number of tokens in the input
+/// - `output_tokens`: Number of tokens in the output
 pub type Usage {
   Usage(input_tokens: Int, output_tokens: Int)
 }
 
 /// Response from the Messages API.
+///
+/// The complete response from creating a message, including the generated
+/// content and metadata.
+///
+/// ## Fields
+/// - `id`: Unique identifier for this message (e.g., "msg_123")
+/// - `model`: Model that generated this response
+/// - `role`: Always Assistant for responses
+/// - `content`: List of content blocks in the response
+/// - `stop_reason`: Why Claude stopped generating
+/// - `usage`: Token usage information
 pub type MessageResponse {
   MessageResponse(
     id: String,
@@ -172,25 +283,29 @@ pub type MessageResponse {
 }
 
 /// Request to create a message.
+///
+/// Contains all parameters for creating a message with Claude.
+///
+/// ## Fields
+/// - `model`: Model identifier (e.g., "claude-3-5-sonnet-20241022")
+/// - `messages`: Conversation history (must alternate user/assistant roles)
+/// - `max_tokens`: Maximum number of tokens to generate (required)
+/// - `system`: System prompt to guide Claude's behavior (optional)
+/// - `temperature`: Randomness (0.0-1.0, higher = more random) (optional)
+/// - `top_p`: Nucleus sampling threshold (optional)
+/// - `top_k`: Top-k sampling parameter (optional)
+/// - `stop_sequences`: Sequences that stop generation (optional)
+/// - `tools`: Tools Claude can use (optional)
 pub type CreateMessageRequest {
   CreateMessageRequest(
-    /// Model to use (e.g., "claude-3-5-sonnet-20241022")
     model: String,
-    /// List of messages in the conversation
     messages: List(Message),
-    /// Maximum tokens to generate
     max_tokens: Int,
-    /// System prompt (optional)
     system: Option(String),
-    /// Temperature for sampling (0.0 to 1.0, optional)
     temperature: Option(Float),
-    /// Top-p sampling (optional)
     top_p: Option(Float),
-    /// Top-k sampling (optional)
     top_k: Option(Int),
-    /// Stop sequences (optional)
     stop_sequences: Option(List(String)),
-    /// Tools available for the model to use (optional)
     tools: Option(List(Tool)),
   )
 }
@@ -198,23 +313,74 @@ pub type CreateMessageRequest {
 // ---- Tool Use Types ----
 
 /// A tool (function) that the model can use.
+///
+/// Tools allow Claude to interact with external systems and APIs.
+/// Define tools with type-safe JSON schemas using the castor package.
+///
+/// ## Fields
+/// - `name`: Tool identifier (must match [a-zA-Z0-9_-]+)
+/// - `description`: What the tool does (helps Claude decide when to use it)
+/// - `input_schema`: JSON schema for input parameters (castor.Schema)
+///
+/// ## Example
+///
+/// ```gleam
+/// import castor
+///
+/// let weather_tool = catastrophic.Tool(
+///   name: "get_weather",
+///   description: "Get current weather for a location",
+///   input_schema: castor.object([
+///     castor.field("location", castor.string()),
+///     castor.field("unit", castor.string()),
+///   ]),
+/// )
+/// ```
 pub type Tool {
-  Tool(
-    /// Name of the tool (must match [a-zA-Z0-9_-]+)
-    name: String,
-    /// Description of what the tool does
-    description: String,
-    /// JSON schema for the tool's input parameters (using castor)
-    input_schema: castor.Schema,
-  )
+  Tool(name: String, description: String, input_schema: castor.Schema)
 }
 
-/// Helper function to create a simple text message
+/// Helper function to create a simple text message.
+///
+/// Convenience function for creating messages with just text content.
+///
+/// ## Parameters
+///
+/// - `role`: Who is sending the message (User or Assistant)
+/// - `text`: The text content
+///
+/// ## Example
+///
+/// ```gleam
+/// let user_msg = catastrophic.text_message(
+///   catastrophic.User,
+///   "Hello, Claude!"
+/// )
+/// ```
 pub fn text_message(role: Role, text: String) -> Message {
   Message(role: role, content: [TextBlock(text)])
 }
 
-/// Helper function to create a tool result message
+/// Helper function to create a tool result message.
+///
+/// After executing a tool, use this to send the results back to Claude.
+/// The message role is automatically set to User.
+///
+/// ## Parameters
+///
+/// - `tool_use_id`: The ID from the ToolUseBlock you're responding to
+/// - `content`: The result (typically JSON string)
+/// - `is_error`: True if the tool execution failed
+///
+/// ## Example
+///
+/// ```gleam
+/// let result_msg = catastrophic.tool_result_message(
+///   "toolu_123",
+///   "{\"temperature\": 72, \"condition\": \"sunny\"}",
+///   False
+/// )
+/// ```
 pub fn tool_result_message(
   tool_use_id: String,
   content: String,
@@ -230,12 +396,21 @@ pub fn tool_result_message(
 }
 
 /// Helper to build a simple tool with string parameters.
-/// For more complex schemas, use castor directly to build the schema.
+///
+/// Creates a tool where all parameters are strings. For more complex parameter
+/// types (numbers, booleans, nested objects), use castor directly to build
+/// the schema.
+///
+/// ## Parameters
+///
+/// - `name`: Tool identifier (must match [a-zA-Z0-9_-]+)
+/// - `description`: What the tool does
+/// - `parameters`: List of (parameter_name, parameter_description) tuples
 ///
 /// ## Example
 ///
 /// ```gleam
-/// simple_tool(
+/// let tool = catastrophic.simple_tool(
 ///   "get_weather",
 ///   "Get the current weather for a location",
 ///   [
@@ -323,7 +498,18 @@ fn content_block_to_json(block: ContentBlock) -> json.Json {
   }
 }
 
-/// Encode a message to JSON (useful for debugging or custom serialization)
+/// Encode a message to JSON.
+///
+/// Converts a Message to its JSON representation. Useful for debugging,
+/// logging, or custom serialization.
+///
+/// ## Parameters
+///
+/// - `message`: The message to encode
+///
+/// ## Returns
+///
+/// JSON representation of the message
 pub fn message_to_json(message: Message) -> json.Json {
   json.object([
     #("role", json.string(role_to_string(message.role))),
@@ -331,7 +517,18 @@ pub fn message_to_json(message: Message) -> json.Json {
   ])
 }
 
-/// Encode a tool to JSON (useful for debugging or custom serialization)
+/// Encode a tool to JSON.
+///
+/// Converts a Tool definition to its JSON representation. Useful for debugging
+/// or verifying tool schemas.
+///
+/// ## Parameters
+///
+/// - `tool`: The tool to encode
+///
+/// ## Returns
+///
+/// JSON representation of the tool with its schema
 pub fn tool_to_json(tool: Tool) -> json.Json {
   // Convert castor schema to JSON
   let schema_json = castor.encode(tool.input_schema)
@@ -343,7 +540,18 @@ pub fn tool_to_json(tool: Tool) -> json.Json {
   ])
 }
 
-/// Encode a create message request to JSON (useful for debugging or custom serialization)
+/// Encode a create message request to JSON.
+///
+/// Converts a CreateMessageRequest to its JSON representation. This is used
+/// internally by `create_message` but exposed for debugging and custom use.
+///
+/// ## Parameters
+///
+/// - `request`: The request to encode
+///
+/// ## Returns
+///
+/// JSON representation of the request with all fields
 pub fn create_message_request_to_json(
   request: CreateMessageRequest,
 ) -> json.Json {
@@ -490,7 +698,46 @@ fn decode_message_response(
 // ---- Request Building (SANS-IO) ----
 
 /// Build an HTTP request to create a message.
-/// This is a SANS-IO function - it only builds the request, it doesn't send it.
+///
+/// This is a SANS-IO function - it only builds the HTTP request without
+/// sending it. You're responsible for sending the request using your
+/// preferred HTTP client.
+///
+/// ## Parameters
+///
+/// - `config`: API configuration with your API key
+/// - `request_data`: The message request parameters
+///
+/// ## Returns
+///
+/// - `Ok(Request(String))`: The HTTP request ready to send
+/// - `Error(MissingApiKey)`: If the API key is empty
+/// - `Error(InvalidRequest)`: If the URL is invalid
+///
+/// ## Example
+///
+/// ```gleam
+/// let config = catastrophic.default_config("sk-ant-api03-...")
+/// let request = catastrophic.CreateMessageRequest(
+///   model: "claude-3-5-sonnet-20241022",
+///   messages: [catastrophic.text_message(catastrophic.User, "Hello!")],
+///   max_tokens: 1024,
+///   system: option.None,
+///   temperature: option.None,
+///   top_p: option.None,
+///   top_k: option.None,
+///   stop_sequences: option.None,
+///   tools: option.None,
+/// )
+///
+/// case catastrophic.create_message(config, request) {
+///   Ok(http_request) -> {
+///     // Send with your HTTP client (e.g., gleam_httpc)
+///     todo
+///   }
+///   Error(e) -> todo
+/// }
+/// ```
 pub fn create_message(
   config: Config,
   request_data: CreateMessageRequest,
@@ -524,7 +771,41 @@ pub fn create_message(
 // ---- Response Parsing (SANS-IO) ----
 
 /// Parse a create message response from an HTTP response.
-/// This is a SANS-IO function - it only parses the response body, it doesn't perform any I/O.
+///
+/// This is a SANS-IO function - it only parses the response without
+/// performing any I/O. Feed it the HTTP response from your HTTP client.
+///
+/// ## Parameters
+///
+/// - `http_response`: The HTTP response with status and body
+///
+/// ## Returns
+///
+/// - `Ok(MessageResponse)`: Successfully parsed response from Claude
+/// - `Error(JsonDecodeError)`: If the JSON is invalid or unexpected
+/// - `Error(ApiError)`: If the API returned an error (4xx/5xx status)
+///
+/// ## Example
+///
+/// ```gleam
+/// // After sending the request with your HTTP client
+/// case http_client.send(http_request) {
+///   Ok(http_response) -> {
+///     case catastrophic.parse_create_message_response(http_response) {
+///       Ok(response) -> {
+///         // Use response.content, response.usage, etc.
+///         todo
+///       }
+///       Error(catastrophic.ApiError(status, message, _)) -> {
+///         // Handle API error
+///         todo
+///       }
+///       Error(e) -> todo
+///     }
+///   }
+///   Error(e) -> todo
+/// }
+/// ```
 pub fn parse_create_message_response(
   http_response: Response(String),
 ) -> Result(MessageResponse, Error) {
@@ -579,73 +860,186 @@ pub fn parse_create_message_response(
 // ---- Streaming Support (SANS-IO) ----
 
 /// Events emitted during a streaming response.
+///
+/// When using `create_message_stream`, Claude sends Server-Sent Events (SSE)
+/// that represent incremental updates. Parse these with `parse_sse_chunk`.
+///
+/// The most important event is `ContentBlockDelta` which contains the actual
+/// text being generated incrementally.
 pub type StreamEvent {
   /// Initial message metadata when stream starts
+  ///
+  /// Contains the message ID, model, role, and initial usage info
   MessageStart(MessageStartEvent)
+
   /// Start of a content block
+  ///
+  /// Indicates a new content block (text, tool use, etc.) is beginning
   ContentBlockStart(ContentBlockStartEvent)
+
   /// Incremental content update (delta)
+  ///
+  /// The main event - contains incremental text as Claude generates it.
+  /// Print delta.delta.text to display streaming output.
   ContentBlockDelta(ContentBlockDeltaEvent)
+
   /// End of a content block
   ContentBlockStop(ContentBlockStopEvent)
-  /// Message-level update (e.g., stop reason, usage)
+
+  /// Message-level update
+  ///
+  /// Contains final stop_reason and usage information
   MessageDelta(MessageDeltaEvent)
+
   /// End of the message stream
+  ///
+  /// Signals that streaming is complete
   MessageStop(MessageStopEvent)
+
   /// Keep-alive ping event
+  ///
+  /// Sent periodically to keep the connection alive
   Ping
+
   /// Unknown event type (for forward compatibility)
+  ///
+  /// Events not recognized are preserved with their type and data
   UnknownEvent(event_type: String, data: String)
 }
 
-/// Message start event data
+/// Message start event data.
+///
+/// Contains initial metadata about the message being generated.
+///
+/// ## Fields
+/// - `message`: Initial MessageResponse (content will be empty initially)
 pub type MessageStartEvent {
   MessageStartEvent(message: MessageResponse)
 }
 
-/// Content block start event data
+/// Content block start event data.
+///
+/// Signals the start of a new content block in the stream.
+///
+/// ## Fields
+/// - `index`: Index of this content block (0-based)
+/// - `content_block`: The content block that's starting
 pub type ContentBlockStartEvent {
   ContentBlockStartEvent(index: Int, content_block: ContentBlock)
 }
 
-/// Content block delta event data (incremental update)
+/// Content block delta event data (incremental update).
+///
+/// Contains the actual incremental content being generated.
+///
+/// ## Fields
+/// - `index`: Index of the content block being updated
+/// - `delta`: The incremental update (usually TextDelta with new text)
 pub type ContentBlockDeltaEvent {
   ContentBlockDeltaEvent(index: Int, delta: ContentDelta)
 }
 
-/// Content delta types
+/// Content delta types.
+///
+/// Different types of incremental updates that can occur.
 pub type ContentDelta {
   /// Text content delta
+  ///
+  /// Contains incrementally generated text. Concatenate these to build
+  /// the complete response.
+  ///
+  /// ## Fields
+  /// - `text`: The new text chunk (e.g., "Hello", " world", "!")
   TextDelta(text: String)
 }
 
-/// Content block stop event data
+/// Content block stop event data.
+///
+/// Signals the end of a content block.
+///
+/// ## Fields
+/// - `index`: Index of the content block that finished
 pub type ContentBlockStopEvent {
   ContentBlockStopEvent(index: Int)
 }
 
-/// Message delta event data
+/// Message delta event data.
+///
+/// Contains message-level updates like stop_reason and usage.
+///
+/// ## Fields
+/// - `delta`: Changes to message-level fields
+/// - `usage`: Token usage delta (optional)
 pub type MessageDeltaEvent {
   MessageDeltaEvent(delta: MessageChanges, usage: Option(UsageDelta))
 }
 
-/// Message-level delta (changes to message)
+/// Message-level delta (changes to message).
+///
+/// ## Fields
+/// - `stop_reason`: Why generation stopped (optional)
+/// - `stop_sequence`: The stop sequence that was matched (optional)
 pub type MessageChanges {
   MessageChanges(stop_reason: Option(StopReason), stop_sequence: Option(String))
 }
 
-/// Usage delta (token counts)
+/// Usage delta (token counts).
+///
+/// Incremental token usage information.
+///
+/// ## Fields
+/// - `output_tokens`: Number of output tokens in this delta
 pub type UsageDelta {
   UsageDelta(output_tokens: Int)
 }
 
-/// Message stop event data
+/// Message stop event data.
+///
+/// Signals that the message stream has completed. No additional data.
 pub type MessageStopEvent {
   MessageStopEvent
 }
 
 /// Build an HTTP request to create a streaming message.
-/// This is a SANS-IO function - it only builds the request, it doesn't send it.
+///
+/// This is a SANS-IO function - it builds the HTTP request for streaming
+/// without sending it. The request includes `stream: true` and sets the
+/// Accept header to `text/event-stream`.
+///
+/// Use this instead of `create_message` when you want incremental responses
+/// (Server-Sent Events).
+///
+/// ## Parameters
+///
+/// - `config`: API configuration with your API key
+/// - `request_data`: The message request parameters
+///
+/// ## Returns
+///
+/// - `Ok(Request(String))`: The HTTP request ready to send to a streaming client
+/// - `Error(MissingApiKey)`: If the API key is empty
+/// - `Error(InvalidRequest)`: If the URL is invalid
+///
+/// ## Example
+///
+/// ```gleam
+/// let config = catastrophic.default_config("sk-ant-api03-...")
+/// let request = catastrophic.CreateMessageRequest(
+///   model: "claude-3-5-sonnet-20241022",
+///   messages: [catastrophic.text_message(catastrophic.User, "Write a haiku")],
+///   max_tokens: 1024,
+///   // ... other fields
+/// )
+///
+/// case catastrophic.create_message_stream(config, request) {
+///   Ok(http_request) -> {
+///     // Send with your streaming HTTP client
+///     // Parse chunks with parse_sse_chunk()
+///     todo
+///   }
+///   Error(e) -> todo
+/// }
+/// ```
 pub fn create_message_stream(
   config: Config,
   request_data: CreateMessageRequest,
@@ -693,21 +1087,41 @@ fn add_stream_field(json_str: String) -> String {
 }
 
 /// Parse Server-Sent Events (SSE) from a chunk of text.
-/// Returns a list of parsed events. Incomplete events at the end are ignored.
 ///
-/// This is a SANS-IO function - feed it chunks from your HTTP client's stream.
+/// This is a SANS-IO function - feed it text chunks from your HTTP client's
+/// streaming response. It returns a list of parsed events. Incomplete events
+/// at the end are ignored (they'll be completed in the next chunk).
+///
+/// The most important event to handle is `ContentBlockDelta` which contains
+/// the incremental text being generated.
+///
+/// ## Parameters
+///
+/// - `chunk`: A chunk of SSE text from the stream
+///
+/// ## Returns
+///
+/// List of parsed StreamEvents (may be empty if chunk has no complete events)
 ///
 /// ## Example
 ///
 /// ```gleam
+/// import gleam/io
+///
 /// // With your streaming HTTP client:
 /// use chunk <- stream_reader.read()
-/// let events = kai_anthropic.parse_sse_chunk(chunk)
+/// let events = catastrophic.parse_sse_chunk(chunk)
+/// 
 /// list.each(events, fn(event) {
 ///   case event {
-///     kai_anthropic.ContentBlockDelta(delta) -> {
-///       // Handle incremental text
-///       io.print(delta.delta.text)
+///     catastrophic.ContentBlockDelta(delta) -> {
+///       // Print incremental text as it arrives
+///       case delta.delta {
+///         catastrophic.TextDelta(text) -> io.print(text)
+///       }
+///     }
+///     catastrophic.MessageStop(_) -> {
+///       io.println("\n[Stream complete]")
 ///     }
 ///     _ -> Nil
 ///   }
