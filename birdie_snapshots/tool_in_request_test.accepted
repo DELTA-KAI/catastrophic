@@ -1,0 +1,23 @@
+---
+version: 1.5.3
+title: tool_in_request_test
+file: ./test/catastrophic_test.gleam
+test_name: tool_in_request_test
+---
+Ok(Request(
+  Post,
+  [
+    #(
+      "content-type",
+      "application/json",
+    ),
+    #("x-api-key", "test-api-key"),
+    #("anthropic-version", "2023-06-01"),
+  ],
+  "{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":[{"type":"text","text":"What is 2+2?"}]}],"max_tokens":100,"tools":[{"name":"calculator","description":"Perform basic arithmetic","input_schema":{"type":"object","properties":{"expression":{"type":"string","nullable":false,"description":"The mathematical expression to evaluate","deprecated":false}},"minProperties":0,"required":["expression"],"nullable":false,"deprecated":false}}]}",
+  Https,
+  "api.anthropic.com",
+  None,
+  "/v1/messages",
+  None,
+))

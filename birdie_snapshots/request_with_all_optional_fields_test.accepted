@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: request_with_all_optional_fields_test
+file: ./test/catastrophic_test.gleam
+test_name: request_with_all_optional_fields_test
+---
+{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":[{"type":"text","text":"Test"}]}],"max_tokens":500,"system":"System prompt","temperature":0.8,"top_p":0.9,"top_k":50,"stop_sequences":["STOP","END"]}

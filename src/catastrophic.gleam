@@ -56,16 +56,12 @@ pub fn url(config: Config, url: String) -> Config {
 pub type Error {
   /// Error decoding JSON response
   JsonDecodeError(json.DecodeError)
-  /// Error encoding request to JSON
-  JsonEncodeError(String)
   /// HTTP error response from the API
   ApiError(status: Int, message: String, error_type: String)
   /// Invalid request parameters
   InvalidRequest(String)
   /// Missing required API key
   MissingApiKey
-  /// Network or connection error
-  NetworkError(String)
 }
 
 /// Error response from the Anthropic API
@@ -78,7 +74,6 @@ pub fn describe_error(error: Error) -> String {
   case error {
     JsonDecodeError(json_error) ->
       "JSON decode error: " <> describe_json_error(json_error)
-    JsonEncodeError(msg) -> "JSON encode error: " <> msg
     ApiError(status, message, error_type) ->
       "API error (status "
       <> int.to_string(status)
@@ -89,7 +84,6 @@ pub fn describe_error(error: Error) -> String {
     InvalidRequest(msg) -> "Invalid request: " <> msg
     MissingApiKey ->
       "Missing API key. Please provide a valid Anthropic API key."
-    NetworkError(msg) -> "Network error: " <> msg
   }
 }
 
@@ -108,11 +102,17 @@ fn describe_json_error(error: json.DecodeError) -> String {
 fn decode_api_error(
   data: Dynamic,
 ) -> Result(ApiErrorResponse, List(DecodeError)) {
-  let decoder = {
+  let error_object_decoder = {
     use error_type <- decode.field("type", decode.string)
     use message <- decode.field("message", decode.string)
     decode.success(ApiErrorResponse(error_type: error_type, message: message))
   }
+
+  let decoder = {
+    use error_obj <- decode.field("error", error_object_decoder)
+    decode.success(error_obj)
+  }
+
   decode.run(data, decoder)
 }
 
@@ -416,7 +416,10 @@ fn content_block_decoder() -> Decoder(ContentBlock) {
     "tool_use" -> {
       use id <- decode.field("id", decode.string)
       use name <- decode.field("name", decode.string)
-      use input <- decode.field("input", json_decoder())
+      use input <- decode.field(
+        "input",
+        decode.dynamic |> decode.map(dynamic_to_json),
+      )
       decode.success(ToolUseBlock(id: id, name: name, input: input))
     }
     "tool_result" -> {
@@ -433,15 +436,11 @@ fn content_block_decoder() -> Decoder(ContentBlock) {
   }
 }
 
-fn json_decoder() -> Decoder(Json) {
-  use json_string <- decode.then(decode.string)
-  decode.success(json_to_string(json_string))
-}
-
 // FFI to convert Dynamic (from JSON) to json.Json type
+// Both Dynamic and Json have the same runtime representation
 @external(erlang, "gleam@function", "identity")
 @external(javascript, "../gleam_stdlib/gleam/function.mjs", "identity")
-fn json_to_string(d: String) -> Json
+fn dynamic_to_json(d: Dynamic) -> Json
 
 fn stop_reason_decoder() -> Decoder(StopReason) {
   use reason_str <- decode.then(decode.string)

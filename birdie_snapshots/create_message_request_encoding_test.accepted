@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: create_message_request_encoding_test
+file: ./test/catastrophic_test.gleam
+test_name: create_message_request_encoding_test
+---
+{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":[{"type":"text","text":"Test message"}]}],"max_tokens":1024,"system":"You are a helpful assistant","temperature":0.7}

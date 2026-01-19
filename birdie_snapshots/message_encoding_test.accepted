@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: message_encoding_test
+file: ./test/catastrophic_test.gleam
+test_name: message_encoding_test
+---
+{"role":"user","content":[{"type":"text","text":"Hello, world!"}]}

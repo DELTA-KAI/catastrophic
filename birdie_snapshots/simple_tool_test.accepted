@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: simple_tool_test
+file: ./test/catastrophic_test.gleam
+test_name: simple_tool_test
+---
+{"name":"get_weather","description":"Get the current weather for a location","input_schema":{"type":"object","properties":{"unit":{"type":"string","nullable":false,"description":"Temperature unit (celsius or fahrenheit)","deprecated":false},"location":{"type":"string","nullable":false,"description":"The city and state, e.g. San Francisco, CA","deprecated":false}},"minProperties":0,"required":["unit","location"],"nullable":false,"deprecated":false}}

@@ -1,0 +1,11 @@
+---
+version: 1.5.3
+title: response_parsing_error_test
+file: ./test/catastrophic_test.gleam
+test_name: response_parsing_error_test
+---
+Error(ApiError(
+  401,
+  "Invalid API key",
+  "invalid_request_error",
+))

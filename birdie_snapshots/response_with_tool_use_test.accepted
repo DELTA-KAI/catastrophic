@@ -1,0 +1,22 @@
+---
+version: 1.5.3
+title: response_with_tool_use_test
+file: ./test/catastrophic_test.gleam
+test_name: response_with_tool_use_test
+---
+Ok(MessageResponse(
+  "msg_123",
+  "claude-3-5-sonnet-20241022",
+  Assistant,
+  [
+    ToolUseBlock(
+      "toolu_456",
+      "get_weather",
+      dict.from_list([
+        #("location", "San Francisco"),
+      ]),
+    ),
+  ],
+  Some(ToolUse),
+  Usage(10, 20),
+))

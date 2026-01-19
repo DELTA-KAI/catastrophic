@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: image_content_block_test
+file: ./test/catastrophic_test.gleam
+test_name: image_content_block_test
+---
+{"role":"user","content":[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0KGgo..."}}]}

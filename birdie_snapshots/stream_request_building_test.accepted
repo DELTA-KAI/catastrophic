@@ -1,0 +1,24 @@
+---
+version: 1.5.3
+title: stream_request_building_test
+file: ./test/catastrophic_test.gleam
+test_name: stream_request_building_test
+---
+Ok(Request(
+  Post,
+  [
+    #(
+      "content-type",
+      "application/json",
+    ),
+    #("x-api-key", "test-api-key"),
+    #("anthropic-version", "2023-06-01"),
+    #("accept", "text/event-stream"),
+  ],
+  "{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"max_tokens":100,"stream":true}",
+  Https,
+  "api.anthropic.com",
+  None,
+  "/v1/messages",
+  None,
+))

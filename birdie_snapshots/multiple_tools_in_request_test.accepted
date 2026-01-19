@@ -1,0 +1,23 @@
+---
+version: 1.5.3
+title: multiple_tools_in_request_test
+file: ./test/catastrophic_test.gleam
+test_name: multiple_tools_in_request_test
+---
+Ok(Request(
+  Post,
+  [
+    #(
+      "content-type",
+      "application/json",
+    ),
+    #("x-api-key", "test-api-key"),
+    #("anthropic-version", "2023-06-01"),
+  ],
+  "{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":[{"type":"text","text":"Help me"}]}],"max_tokens":100,"tools":[{"name":"get_weather","description":"Get weather data","input_schema":{"type":"object","properties":{"location":{"type":"string","nullable":false,"description":"City name","deprecated":false}},"minProperties":0,"required":["location"],"nullable":false,"deprecated":false}},{"name":"search","description":"Search the web","input_schema":{"type":"object","properties":{"query":{"type":"string","nullable":false,"description":"Search query","deprecated":false}},"minProperties":0,"required":["query"],"nullable":false,"deprecated":false}}]}",
+  Https,
+  "api.anthropic.com",
+  None,
+  "/v1/messages",
+  None,
+))

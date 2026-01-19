@@ -1,0 +1,7 @@
+---
+version: 1.5.3
+title: tool_result_message_test
+file: ./test/catastrophic_test.gleam
+test_name: tool_result_message_test
+---
+{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_123","content":"{\"result\": \"success\"}"}]}
